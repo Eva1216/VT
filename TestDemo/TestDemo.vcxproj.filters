@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Driver Files">
+      <UniqueIdentifier>{8E41214B-6785-4CFE-B992-037D68949A14}</UniqueIdentifier>
+      <Extensions>inf;inv;inx;mof;mc;</Extensions>
+    </Filter>
+    <Filter Include="DbgTool">
+      <UniqueIdentifier>{0fa32f9d-ecf4-4132-a92f-27f68d948cbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hook">
+      <UniqueIdentifier>{610a49cc-a23f-41c4-9f82-81ae11061daa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include">
+      <UniqueIdentifier>{317fac71-42bd-49e3-925d-fe391836f5e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Intel">
+      <UniqueIdentifier>{8fefa488-5ada-45b8-9c40-3ae4e70a81f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{fdd1c3d6-3a4f-4573-83f5-9b59b1e8a440}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Driver">
+      <UniqueIdentifier>{e320a7fd-47a1-4edf-9374-2eb660edec63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{57b624cb-12d3-49d5-91af-7113fc2a9500}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="R3EptHideMem">
+      <UniqueIdentifier>{4b5f696f-a611-478f-9ccd-93ae71fee675}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HVM">
+      <UniqueIdentifier>{1b552da6-c019-4699-9a11-b74eea1c2f95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="R3 R0">
+      <UniqueIdentifier>{bb1fefbe-5a61-4b85-85e8-d95b2ffca3c2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="TestDemo.inf">
+      <Filter>Driver Files</Filter>
+    </Inf>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DbgTool\DbgTool.c">
+      <Filter>DbgTool</Filter>
+    </ClCompile>
+    <ClCompile Include="Hook\PageHook.c">
+      <Filter>Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Intel\EPT.c">
+      <Filter>Intel</Filter>
+    </ClCompile>
+    <ClCompile Include="Intel\VMX.c">
+      <Filter>Intel</Filter>
+    </ClCompile>
+    <ClCompile Include="Intel\VmxEvent.c">
+      <Filter>Intel</Filter>
+    </ClCompile>
+    <ClCompile Include="Intel\VmxExitHandlers.c">
+      <Filter>Intel</Filter>
+    </ClCompile>
+    <ClCompile Include="Test\Test.c">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Driver\Driver.c">
+      <Filter>Driver</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\LDasm.c">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Utils.c">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="R3EptHideMem\R3EptHideMem.c">
+      <Filter>R3EptHideMem</Filter>
+    </ClCompile>
+    <ClCompile Include="HVM\HVM.c">
+      <Filter>HVM</Filter>
+    </ClCompile>
+    <ClCompile Include="Hook\SysCallHook.c">
+      <Filter>Hook</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DbgTool\DbgTool.h">
+      <Filter>DbgTool</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\PageHook.h">
+      <Filter>Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\PE.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\CPU.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Native.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Intel\EPT.h">
+      <Filter>Intel</Filter>
+    </ClInclude>
+    <ClInclude Include="Intel\VMX.h">
+      <Filter>Intel</Filter>
+    </ClInclude>
+    <ClInclude Include="Intel\VMCS.h">
+      <Filter>Intel</Filter>
+    </ClInclude>
+    <ClInclude Include="Intel\VmxExitHandlers.h">
+      <Filter>Intel</Filter>
+    </ClInclude>
+    <ClInclude Include="Intel\VmxEvent.h">
+      <Filter>Intel</Filter>
+    </ClInclude>
+    <ClInclude Include="Test\Test.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="Driver\Driver.h">
+      <Filter>Driver</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\LDasm.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Utils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="R3EptHideMem\R3EptHideMem.h">
+      <Filter>R3EptHideMem</Filter>
+    </ClInclude>
+    <ClInclude Include="HVM\HVM.h">
+      <Filter>HVM</Filter>
+    </ClInclude>
+    <ClInclude Include="R3R0\GlobalData.h">
+      <Filter>R3 R0</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\SysCallHook.h">
+      <Filter>Hook</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="Intel\VMXa.asm">
+      <Filter>Intel</Filter>
+    </MASM>
+    <MASM Include="Hook\SysCallHooka.asm">
+      <Filter>Hook</Filter>
+    </MASM>
+  </ItemGroup>
+</Project>
