@@ -10,7 +10,7 @@ PVOID HookTable[MAX_SYSCALL_INDEX] = { 0 };
 
 ULONG64 KiServiceCopyEndPtr = 0;    // KiSystemServiceCopyEnd address
 ULONG64 KiSystemCall64Ptr = 0;    // Original LSTAR value
-
+//»ã±à
 VOID SyscallEntryPoint();
 
 /// <summary>
