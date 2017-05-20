@@ -55,7 +55,7 @@ NTSTATUS SHInitHook()
 			return status;
 		}
 	}
-
+	//haha
 	// Hook LSTAR
 	if (KiSystemCall64Ptr == 0)
 	{
