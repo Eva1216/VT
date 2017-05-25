@@ -168,37 +168,64 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AntiAntiDbg\AntiAntiDbg.c" />
+    <ClCompile Include="AntiHook\AntiHookSwapContext.c" />
+    <ClCompile Include="DbgTool\DbgProcessInformation.c" />
     <ClCompile Include="DbgTool\DbgTool.c" />
     <ClCompile Include="Driver\Driver.c" />
+    <ClCompile Include="DRRWE\DRRWE.c" />
+    <ClCompile Include="Hook\HookFunction\HookFunction.c" />
     <ClCompile Include="Hook\PageHook.c" />
+    <ClCompile Include="Hook\SSDTHook.c" />
     <ClCompile Include="Hook\SysCallHook.c" />
     <ClCompile Include="HVM\HVM.c" />
     <ClCompile Include="Intel\EPT.c" />
     <ClCompile Include="Intel\VMX.c" />
     <ClCompile Include="Intel\VmxEvent.c" />
     <ClCompile Include="Intel\VmxExitHandlers.c" />
+    <ClCompile Include="MiNiHook\MiNiHook.c" />
+    <ClCompile Include="PassPG\DisablePG.c" />
+    <ClCompile Include="ProcessDbgList\ActiveProcessDbgList.c" />
+    <ClCompile Include="ProtectWindow\ProtectWindow.c" />
     <ClCompile Include="R3EptHideMem\R3EptHideMem.c" />
+    <ClCompile Include="ResetDbg\Dbg.c" />
+    <ClCompile Include="ResetDbg\ResetDbg.c" />
     <ClCompile Include="Test\Test.c" />
     <ClCompile Include="Utils\LDasm.c" />
     <ClCompile Include="Utils\Utils.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AntiAntiDbg\AntiAntiDbg.h" />
+    <ClInclude Include="AntiHook\AntiHookSwapContext.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="DbgTool\DbgProcessInformation.h" />
     <ClInclude Include="DbgTool\DbgTool.h" />
     <ClInclude Include="Driver\Driver.h" />
+    <ClInclude Include="DRRWE\DRRWE.h" />
+    <ClInclude Include="Hook\HookFunction\HookFunction.h" />
     <ClInclude Include="Hook\PageHook.h" />
+    <ClInclude Include="Hook\SSDTHook.h" />
     <ClInclude Include="Hook\SysCallHook.h" />
     <ClInclude Include="HVM\HVM.h" />
+    <ClInclude Include="Include\AMD64.h" />
     <ClInclude Include="Include\CPU.h" />
     <ClInclude Include="Include\Native.h" />
     <ClInclude Include="Include\PE.h" />
+    <ClInclude Include="Include\Txoo.h" />
     <ClInclude Include="Intel\EPT.h" />
     <ClInclude Include="Intel\VMCS.h" />
     <ClInclude Include="Intel\VMX.h" />
     <ClInclude Include="Intel\VmxEvent.h" />
     <ClInclude Include="Intel\VmxExitHandlers.h" />
+    <ClInclude Include="KernelStruct\KernelStruct.h" />
+    <ClInclude Include="MiNiHook\MiNiHook.h" />
+    <ClInclude Include="PassPG\DisablePG.h" />
+    <ClInclude Include="ProcessDbgList\ActiveProcessDbgList.h" />
+    <ClInclude Include="ProtectWindow\ProtectWindow.h" />
     <ClInclude Include="R3EptHideMem\R3EptHideMem.h" />
     <ClInclude Include="R3R0\GlobalData.h" />
+    <ClInclude Include="ResetDbg\Dbg.h" />
+    <ClInclude Include="ResetDbg\ResetDbg.h" />
     <ClInclude Include="Test\Test.h" />
     <ClInclude Include="Utils\LDasm.h" />
     <ClInclude Include="Utils\Utils.h" />
@@ -206,6 +233,7 @@
   <ItemGroup>
     <MASM Include="Hook\SysCallHooka.asm" />
     <MASM Include="Intel\VMXa.asm" />
+    <MASM Include="PassPG\DisablePGASM.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,17 +1,33 @@
 #include "Driver.h"
 #include "..\DbgTool\DbgTool.h"
 #include "..\Test\Test.h"
-BOOLEAN DriverEnable = FALSE;
-BOOLEAN MainVtMode = FALSE;
-PDEVICE_OBJECT g_DevObject;
-
-BOOLEAN OpenVtMode = TRUE;//LOAD VT MODE
+#include "..\DbgTool\DbgProcessInformation.h"
+#include "..\R3R0\GlobalData.h"
+#include "..\PassPG\DisablePG.h"
+#include "..\R3R0\GlobalData.h"
+#include "..\AntiHook\AntiHookSwapContext.h"
+#include "..\AntiAntiDbg\AntiAntiDbg.h"
+#include "..\Hook\SysCallHook.h"
+#include "..\ResetDbg\ResetDbg.h"
+#include "..\Hook\SSDTHook.h"
+#include "..\MiNiHook\MiNiHook.h"
+#include "..\ProtectWindow\ProtectWindow.h"
+UCHAR int3 = { 0xCC };
+BOOLEAN			DriverEnable = FALSE;
+BOOLEAN			MainVtMode = FALSE;
+PDEVICE_OBJECT	g_DevObject;
+PEPROCESS		ProcessInformation;
+ULONG64			ProcessAddr = NULL;
+BOOLEAN			ISHOOK = FALSE;
+BOOLEAN			OpenVtMode = TRUE;//LOAD VT MODE
 typedef int(*LDE_DISASM)(void *p, int dw);
 LDE_DISASM LDE;
 PGLOBAL_DATA g_Data = NULL;
 p_save_handlentry PmainList;
+BOOLEAN VtMode = FALSE;
+HANDLE ProcessId = NULL;
 
-
+NTSTATUS PsLookupProcessByProcessId(_In_ HANDLE ProcessId, _Out_ PEPROCESS *Process);
 NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObj, PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
@@ -22,11 +38,12 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObj, PUNICODE_STRING RegistryPath)
 	//设置分发函数和卸载例程
 	pDriverObj->MajorFunction[IRP_MJ_CREATE] = DispatchCreate;
 	pDriverObj->MajorFunction[IRP_MJ_CLOSE] = DispatchClose;
-	//pDriverObj->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DispatchIoctl;
+	pDriverObj->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DispatchIoctl;
 	pDriverObj->DriverUnload = DriverUnload;
 	//创建一个设备
 	RtlInitUnicodeString(&ustrDevName, DEVICE_NAME);
 	Status= IoCreateDevice(pDriverObj, 0, &ustrDevName, FILE_DEVICE_UNKNOWN, 0, FALSE, &g_DevObject);
+	DbgConter = FALSE;
 	if (!NT_SUCCESS(Status))
 	{
 		return Status;
@@ -49,11 +66,11 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObj, PUNICODE_STRING RegistryPath)
 	}
 
 	DbgPrint("VV-DBG \n");
-	//PmainList = CreateList();//创建记录DBG工具的链表
+	PmainList = CreateList();//创建记录DBG工具的链表
 
 	LDE_init();
 	BypassCheckSign(pDriverObj);//过标签
-	//InitialzeDbgprocessList();	//初始化调试信息链表
+	InitialzeDbgprocessList();	//初始化调试信息链表
 	if (OpenVtMode)
 	{
 		InitialzeR3EPTHOOK();//初始化R3内存欺骗
@@ -63,6 +80,790 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObj, PUNICODE_STRING RegistryPath)
 	return STATUS_SUCCESS;
 }
 
+int __cdecl mystrcmp(const char *src, const char *dst)
+{
+	int ret = 0;
+	while (!(ret = *(unsigned char *)src - *(unsigned char *)dst) && *dst)
+		++src, ++dst;
+	if (ret < 0)
+		ret = -1;
+	else if (ret > 0)
+		ret = 1;
+	return(ret);
+}
+
+VOID DbgNoVtHookMyDbgKr(BOOLEAN IsH) {
+	if (IsH)
+	{
+		InitDisablePatchGuard();// 动态PASS W7 PG
+								//	HOOKSwapContext();
+		InitIalzeSsdtInlineHook();
+		InstallMiniHOOK();//加载dbgk-krnl函数钩子
+		RemoveDbgtoolMsg(TRUE);
+	}
+	else
+	{
+		UnLoadDisablePatchGuard();
+		//	UnHookSwapContext();
+		UnLoadSSDTInlineHook();
+		//SetDbgMsgNotify(FALSE);
+		RemoveDbgtoolMsg(FALSE);
+		UnLoadMiniHook();
+	}
+
+
+
+}
+NTSTATUS DispatchIoctl(PDEVICE_OBJECT pDevObj, PIRP pIrp)
+{
+	//VMProtectBegin("DispatchIoctl");
+
+	NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+	PIO_STACK_LOCATION pIrpStack;
+	ULONG uIoControlCode;
+	PVOID pIoBuffer;
+	ULONG uInSize;
+	ULONG uOutSize;
+
+	//获得IRP里的关键数据
+	pIrpStack = IoGetCurrentIrpStackLocation(pIrp);
+	//这个就是传说中的控制码
+	uIoControlCode = pIrpStack->Parameters.DeviceIoControl.IoControlCode;
+	//输入和输出的缓冲区（DeviceIoControl的InBuffer和OutBuffer都是它）
+	pIoBuffer = pIrp->AssociatedIrp.SystemBuffer;
+	//EXE发送传入数据的BUFFER长度（DeviceIoControl的nInBufferSize）
+	uInSize = pIrpStack->Parameters.DeviceIoControl.InputBufferLength;
+	//EXE接收传出数据的BUFFER长度（DeviceIoControl的nOutBufferSize）
+	uOutSize = pIrpStack->Parameters.DeviceIoControl.OutputBufferLength;
+	switch (uIoControlCode)
+	{
+	case IOCTL_NotiyEnable: {
+		if (!DriverEnable)
+		{
+			if (strlen(KeyCode) != 0 && strlen(KeyCheck) != 0)
+			{
+
+				if (mystrcmp(KeyCode, "") != 0 && mystrcmp(KeyCheck, "") != 0)
+				{
+					if (mystrcmp(KeyCode, KeyCheck) == 0)//验证key是否存在
+					{
+
+						if (CheckIOCTLData) {//验证所有调试数据是否可用
+							InitializeHookSwapContext();
+							ObProtectProcess(TRUE);
+
+							DriverEnable = TRUE;
+							InitData(); //初始化数据
+
+							InitDbgKernel();//初始化dbgkrnl系统数据
+									   //	TestPageHook();
+							DbgNoVtHookMyDbgKr(TRUE);
+							VtMode = FALSE;
+							//	Dbglol();//支持VT则启用VT模式 不支持则启动普通模式
+							LoadProtectWindow();
+						}
+					}
+
+
+				}
+			}
+		}
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case  IOCTL_dbgProcessId: {
+		DbgPrint(" ADD DBG TOOL PROCESS");
+		InsertList(PsGetCurrentProcessId(), PsGetCurrentProcess(), PmainList);//加入DBG进程
+		if (VtMode)
+		{
+			///暂时没处理这个位置
+		}
+		else {
+			ULONG64 process = PsGetCurrentProcess();
+			RemoveListEntry(process + 0x188);
+
+		}
+
+
+
+		break;
+	}
+
+	/*
+	case Hookpage:
+	{
+		// inunHOOK = TRUE;
+		////// HOOK R3 
+		if (ProcessInformation != NULL) {
+			if (ISHOOK == TRUE) {
+
+				// HookEptMemoryPage(process, ProcessAddr);
+				R3_HideMem(ProcessInformation, ProcessAddr, &int3, 1);
+
+				DbgPrint("挂钩成功EPROCESS:%p \n", ProcessInformation);
+				DbgPrint("挂钩成功地址:%p  \n", ProcessAddr);
+				ProcessInformation = NULL;
+				ProcessAddr = NULL;
+			}
+		}
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case Unhookpage:
+	{
+
+		// inunHOOK = FALSE;
+		//// UNHOOK R3
+
+		// UnHookEptPage( ProcessAddr);
+		if (ProcessAddr != NULL) {
+			if (ISHOOK == TRUE) {
+				R3_UnHideMem(ProcessAddr, ProcessInformation);
+
+				ProcessInformation = NULL;
+				ProcessAddr = NULL;
+
+			}
+		}
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	*/
+	case TargetHookAddress:
+	{
+		///// ADDRESS R3
+		RtlZeroMemory(&ProcessId, 8);
+		memcpy(&ProcessAddr, pIoBuffer, sizeof(ProcessAddr));
+
+
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case TargetProcessId:
+	{
+		RtlZeroMemory(&ProcessId, 8);
+		memcpy(&ProcessId, pIoBuffer, sizeof(ProcessId));
+		DbgPrint(" IS TRUE ! PROCESS %d \n", ProcessId);
+		if (NT_SUCCESS(PsLookupProcessByProcessId(ProcessId, &ProcessInformation))) {
+			ISHOOK = TRUE;
+			DbgPrint(" IS TRUE ! EPROCESS %p \n", ProcessInformation);
+		}
+		else {
+
+			ISHOOK = FALSE;
+
+		}
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_ObDuplicateObject:
+	{
+		RtlZeroMemory(&ObDuplicateObject, 8);
+		memcpy(&ObDuplicateObject, pIoBuffer, sizeof(ObDuplicateObject));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_RtlpCopyLegacyContextX86:
+	{
+		RtlZeroMemory(&RtlpCopyLegacyContextX86, 8);
+		memcpy(&RtlpCopyLegacyContextX86, pIoBuffer, sizeof(RtlpCopyLegacyContextX86));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	////
+
+	case IOCTL_keycode:
+	{
+		RtlZeroMemory(&KeyCode, 1024);
+		memcpy(&KeyCode, pIoBuffer, 1024);
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case IOCTL_keycheck:
+	{
+		RtlZeroMemory(&KeyCheck, 1024);
+		memcpy(&KeyCheck, pIoBuffer, 1024);
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	////
+
+	/*
+	case IOCTL_DbgLol: {
+
+		if (DbgConter == FALSE) {
+			Dbglol();
+			DbgConter = TRUE;
+		}
+		else
+		{
+			DbgConter = FALSE;
+			DbgUnlol();
+		}
+		status = STATUS_SUCCESS;
+		break;
+	}
+	*/
+	case IOCTL_KiAttachProcess:
+	{
+		RtlZeroMemory(&KiAttachProcess, 8);
+		memcpy(&KiAttachProcess, pIoBuffer, sizeof(KiAttachProcess));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkpWakeTarget:
+	{
+		RtlZeroMemory(&DbgkpWakeTarget_2, 8);
+		memcpy(&DbgkpWakeTarget_2, pIoBuffer, sizeof(DbgkpWakeTarget_2));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	////////////////////////////////////////////
+
+	case IOCTL_NtCreateDebugObject:
+	{
+		RtlZeroMemory(&NtCreateDebugObject, 8);
+		memcpy(&NtCreateDebugObject, pIoBuffer, sizeof(NtCreateDebugObject));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+
+
+
+	case IOCTL_NtWaitForDebugEvent:
+	{
+		RtlZeroMemory(&NtWaitForDebugEvent, 8);
+		memcpy(&NtWaitForDebugEvent, pIoBuffer, sizeof(NtWaitForDebugEvent));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case IOCTL_SwapContext:
+	{
+		RtlZeroMemory(&SwapContext, 8);
+		memcpy(&SwapContext, pIoBuffer, sizeof(SwapContext));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_SwapContext_PatchXRstor:
+	{
+		RtlZeroMemory(&SwapContext_PatchXRstor, 8);
+		memcpy(&SwapContext_PatchXRstor, pIoBuffer, sizeof(SwapContext_PatchXRstor));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_NtDebugContinue:
+	{
+		RtlZeroMemory(&NtDebugContinue, 8);
+		memcpy(&NtDebugContinue, pIoBuffer, sizeof(NtDebugContinue));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+
+
+	case IOCTL_NtDebugActiveProcess:
+	{
+		RtlZeroMemory(&NtDebugActiveProcess, 8);
+		memcpy(&NtDebugActiveProcess, pIoBuffer, sizeof(NtDebugActiveProcess));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+
+
+	case IOCTL_NtRemoveProcessDebug:
+	{
+		RtlZeroMemory(&myNtRemoveProcessDebug, 8);
+		memcpy(&myNtRemoveProcessDebug, pIoBuffer, sizeof(myNtRemoveProcessDebug));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	case IOCTL_NtReadVirtualMemory:
+	{
+		RtlZeroMemory(&NtReadVirtualMemory, 8);
+		memcpy(&NtReadVirtualMemory, pIoBuffer, sizeof(NtReadVirtualMemory));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_NtWriteVirtualMemory:
+	{
+		RtlZeroMemory(&NtWriteVirtualMemory, 8);
+		memcpy(&NtWriteVirtualMemory, pIoBuffer, sizeof(NtWriteVirtualMemory));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_NtOpenProcess:
+	{
+		RtlZeroMemory(&XNtOpenProcess, 8);
+		memcpy(&XNtOpenProcess, pIoBuffer, sizeof(XNtOpenProcess));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	//////////////////////////////////////////////////////////////////////////
+	case IOCTL_DbgkpPostFakeProcessCreateMessages:
+	{
+		RtlZeroMemory(&DbgkpPostFakeProcessCreateMessages, 8);
+		memcpy(&DbgkpPostFakeProcessCreateMessages, pIoBuffer, sizeof(DbgkpPostFakeProcessCreateMessages));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkpSetProcessDebugObject:
+	{
+		RtlZeroMemory(&DbgkpSetProcessDebugObject, 8);
+		memcpy(&DbgkpSetProcessDebugObject, pIoBuffer, sizeof(DbgkpSetProcessDebugObject));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_ExCompareExchangeCallBack:
+	{
+		RtlZeroMemory(&ExCompareExchangeCallBack, 8);
+		memcpy(&ExCompareExchangeCallBack, pIoBuffer, sizeof(ExCompareExchangeCallBack));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case IOCTL_NtQueryInformationThread:
+	{
+		RtlZeroMemory(&NtQueryInformationThread, 8);
+		memcpy(&NtQueryInformationThread, pIoBuffer, sizeof(NtQueryInformationThread));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_PspSystemDlls:
+	{
+		RtlZeroMemory(&PspSystemDlls, 8);
+		memcpy(&PspSystemDlls, pIoBuffer, sizeof(PspSystemDlls));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_ObpCallPreOperationCallbacks:
+	{
+		RtlZeroMemory(&ObpCallPreOperationCallbacks, 8);
+		memcpy(&ObpCallPreOperationCallbacks, pIoBuffer, sizeof(ObpCallPreOperationCallbacks));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_MmGetFileNameForAddress:
+	{
+		RtlZeroMemory(&MmGetFileNameForAddress, 8);
+		memcpy(&MmGetFileNameForAddress, pIoBuffer, sizeof(MmGetFileNameForAddress));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+
+	case IOCTL_DbgkpQueueMessage:
+	{
+		RtlZeroMemory(&DbgkpQueueMessage, 8);
+		memcpy(&DbgkpQueueMessage, pIoBuffer, sizeof(DbgkpQueueMessage));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkpSendApiMessage:
+	{
+		RtlZeroMemory(&DbgkpSendApiMessage, 8);
+		memcpy(&DbgkpSendApiMessage, pIoBuffer, sizeof(DbgkpSendApiMessage));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_ExGetCallBackBlockRoutine:
+	{
+		RtlZeroMemory(&ExGetCallBackBlockRoutine, 8);
+		memcpy(&ExGetCallBackBlockRoutine, pIoBuffer, sizeof(ExGetCallBackBlockRoutine));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case IOCTL_PsTerminateProcess:
+	{
+		RtlZeroMemory(&PsTerminateProcess, 8);
+		memcpy(&PsTerminateProcess, pIoBuffer, sizeof(PsTerminateProcess));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	////
+
+	case IOCTL_DbgkExitProcess:
+	{
+		RtlZeroMemory(&DbgkExitProcess, 8);
+		memcpy(&DbgkExitProcess, pIoBuffer, sizeof(DbgkExitProcess));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case IOCTL_DbgkExitThread:
+	{
+		RtlZeroMemory(&DbgkExitThread, 8);
+		memcpy(&DbgkExitThread, pIoBuffer, sizeof(DbgkExitThread));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	////
+
+	case IOCTL_ObTypeIndexTable:
+	{
+		RtlZeroMemory(&ObTypeIndexTable, 8);
+		memcpy(&ObTypeIndexTable, pIoBuffer, sizeof(ObTypeIndexTable));
+
+		DbgPrint(("RECV ObTypeIndexTable \n"));
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_DbgkOpenProcessDebugPort:
+	{
+		RtlZeroMemory(&DbgkOpenProcessDebugPort, 8);
+		memcpy(&DbgkOpenProcessDebugPort, pIoBuffer, sizeof(DbgkOpenProcessDebugPort));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkUnMapViewOfSection:
+	{
+		RtlZeroMemory(&DbgkUnMapViewOfSection, 8);
+		memcpy(&DbgkUnMapViewOfSection, pIoBuffer, sizeof(DbgkUnMapViewOfSection));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkMapViewOfSection:
+	{
+		RtlZeroMemory(&DbgkMapViewOfSection, 8);
+		memcpy(&DbgkMapViewOfSection, pIoBuffer, sizeof(DbgkMapViewOfSection));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_KiDispatchException:
+	{
+		RtlZeroMemory(&KiDispatchException, 8);
+		memcpy(&KiDispatchException, pIoBuffer, sizeof(KiDispatchException));
+		DbgPrint(("RECV ObTypeIndexTable \n"));
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkForwardException:
+	{
+		RtlZeroMemory(&DbgkForwardException, 8);
+		memcpy(&DbgkForwardException, pIoBuffer, sizeof(DbgkForwardException));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_MmGetFileNameForSection:
+	{
+		RtlZeroMemory(&MmGetFileNameForSection, 8);
+		memcpy(&MmGetFileNameForSection, pIoBuffer, sizeof(MmGetFileNameForSection));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_PsGetNextProcess:
+	{
+		RtlZeroMemory(&PsGetNextProcess, 8);
+		memcpy(&PsGetNextProcess, pIoBuffer, sizeof(PsGetNextProcess));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_DbgkpProcessDebugPortMutex:
+	{
+		RtlZeroMemory(&DbgkpProcessDebugPortMutex, 8);
+		memcpy(&DbgkpProcessDebugPortMutex, pIoBuffer, sizeof(DbgkpProcessDebugPortMutex));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkCopyProcessDebugPort:
+	{
+		RtlZeroMemory(&DbgkCopyProcessDebugPort, 8);
+		memcpy(&DbgkCopyProcessDebugPort, pIoBuffer, sizeof(DbgkCopyProcessDebugPort));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_DbgkDebugObjectType:
+	{
+		RtlZeroMemory(&DbgkDebugObjectType, 8);
+		memcpy(&DbgkDebugObjectType, pIoBuffer, sizeof(DbgkDebugObjectType));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	case IOCTL_KiSaveDebugRegisterState:
+	{
+		RtlZeroMemory(&KiSaveDebugRegisterState, 8);
+		memcpy(&KiSaveDebugRegisterState, pIoBuffer, sizeof(KiSaveDebugRegisterState));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_KiRestoreDebugRegisterState:
+	{
+		RtlZeroMemory(&KiRestoreDebugRegisterState, 8);
+		memcpy(&KiRestoreDebugRegisterState, pIoBuffer, sizeof(KiRestoreDebugRegisterState));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KiUmsCallEntry:
+	{
+		RtlZeroMemory(&KiUmsCallEntry, 8);
+		memcpy(&KiUmsCallEntry, pIoBuffer, sizeof(KiUmsCallEntry));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KiSystemServiceExit:
+	{
+		RtlZeroMemory(&KiSystemServiceExit, 8);
+		memcpy(&KiSystemServiceExit, pIoBuffer, sizeof(KiSystemServiceExit));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KeGdiFlushUserBatch:
+	{
+		RtlZeroMemory(&KeGdiFlushUserBatch, 8);
+		memcpy(&KeGdiFlushUserBatch, pIoBuffer, sizeof(KeGdiFlushUserBatch));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KiConvertToGuiThread:
+	{
+		RtlZeroMemory(&KiConvertToGuiThread, 8);
+		memcpy(&KiConvertToGuiThread, pIoBuffer, sizeof(KiConvertToGuiThread));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_KiSystemServiceRepeat:
+	{
+		RtlZeroMemory(&KiSystemServiceRepeat, 8);
+		memcpy(&KiSystemServiceRepeat, pIoBuffer, sizeof(KiSystemServiceRepeat));
+		KiSystemServiceRepeat = KiSystemServiceRepeat + 0x3C;
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KiSystemServiceCopyEnd:
+	{
+		RtlZeroMemory(&KiSystemServiceCopyEnd, 8);
+		memcpy(&KiSystemServiceCopyEnd, pIoBuffer, sizeof(KiSystemServiceCopyEnd));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KeServiceDescriptorTable:
+	{
+		RtlZeroMemory(&KeServiceDescriptorTable, 8);
+		memcpy(&KeServiceDescriptorTable, pIoBuffer, sizeof(KeServiceDescriptorTable));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_DbgkpPostFakeThreadMessages:
+	{
+		RtlZeroMemory(&DbgkpPostFakeThreadMessages, 8);
+		memcpy(&DbgkpPostFakeThreadMessages, pIoBuffer, sizeof(DbgkpPostFakeThreadMessages));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_PsSuspendThread:
+	{
+		RtlZeroMemory(&PsSuspendThread, 8);
+		memcpy(&PsSuspendThread, pIoBuffer, sizeof(PsSuspendThread));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+	case IOCTL_KeFreezeAllThreads:
+	{
+		RtlZeroMemory(&KeFreezeAllThreads, 8);
+		memcpy(&KeFreezeAllThreads, pIoBuffer, sizeof(KeFreezeAllThreads));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_PsResumeThread:
+	{
+		RtlZeroMemory(&PsResumeThread, 8);
+		memcpy(&PsResumeThread, pIoBuffer, sizeof(PsResumeThread));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KeThawAllThreads:
+	{
+		RtlZeroMemory(&KeThawAllThreads, 8);
+		memcpy(&KeThawAllThreads, pIoBuffer, sizeof(KeThawAllThreads));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_PsGetNextProcessThread:
+	{
+		RtlZeroMemory(&PsGetNextProcessThread, 8);
+		memcpy(&PsGetNextProcessThread, pIoBuffer, sizeof(PsGetNextProcessThread));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	case IOCTL_KiRetireDpcList:
+	{
+		RtlZeroMemory(&KiRetireDpcList, 8);
+		memcpy(&KiRetireDpcList, pIoBuffer, sizeof(KiRetireDpcList));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+
+
+	case IOCTL_DbgkpPostModuleMessages:
+	{
+		RtlZeroMemory(&DbgkpPostModuleMessages, 8);
+		memcpy(&DbgkpPostModuleMessages, pIoBuffer, sizeof(DbgkpPostModuleMessages));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+
+	case IOCTL_KeServiceDescriptorTableShadow:
+	{
+		RtlZeroMemory(&KeServiceDescriptorTableShadow, 8);
+		memcpy(&KeServiceDescriptorTableShadow, pIoBuffer, sizeof(KeServiceDescriptorTableShadow));
+
+		status = STATUS_SUCCESS;
+		break;
+	}
+	//////////////////////////////////////////////////////////////////////////
+	/**	case ISrecv:
+	{
+
+
+
+
+	status = STATUS_SUCCESS;
+	break;
+	}*/
+	}
+	//这里设定DeviceIoControl的*lpBytesReturned的值（如果通信失败则返回0长度）
+	if (status == STATUS_SUCCESS)
+		pIrp->IoStatus.Information = uOutSize;
+	else
+		pIrp->IoStatus.Information = 0;
+	//这里设定DeviceIoControl的返回值是成功还是失败
+	pIrp->IoStatus.Status = status;
+	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
+
+	return status;
+	//VMProtectEnd();
+}
+
+
+BOOLEAN CheckIOCTLData() {
+	if (KiRetireDpcList == NULL || ObDuplicateObject == NULL || KiSaveDebugRegisterState == NULL || KiUmsCallEntry == NULL || KiSystemServiceExit == NULL || KeGdiFlushUserBatch == NULL || KiSystemServiceRepeat == NULL || PspSystemDlls == NULL)
+	{
+		return FALSE;
+	}
+
+	if (KeServiceDescriptorTable == NULL || KeServiceDescriptorTableShadow == NULL || KiSystemServiceCopyEnd == NULL || DbgkDebugObjectType == NULL) {
+		return FALSE;
+	}
+	if (DbgkCopyProcessDebugPort == NULL || KiDispatchException == NULL || DbgkForwardException == NULL || LpcRequestWaitReplyPortEx == NULL) {
+
+		return FALSE;
+	}
+	if (KiDispatchException == NULL || MmGetFileNameForSection == NULL || PsGetNextProcess == NULL || PsTerminateProcess == NULL || DbgkOpenProcessDebugPort == NULL || DbgkUnMapViewOfSection == NULL || DbgkMapViewOfSection == NULL) {
+		return FALSE;
+	}
+	if (ExGetCallBackBlockRoutine == NULL || ObpCallPreOperationCallbacks == NULL || DbgkExitProcess == NULL || DbgkExitThread == NULL || DbgkpSendApiMessage == NULL || DbgkpQueueMessage == NULL || MmGetFileNameForAddress == NULL)
+	{
+		return FALSE;
+	}
+	if (NtQueryInformationThread == NULL || ExCompareExchangeCallBack == NULL || RtlpCopyLegacyContextX86 == NULL)
+	{
+		return FALSE;
+	}
+
+	if (NtReadVirtualMemory == NULL || NtWriteVirtualMemory == NULL || XNtOpenProcess == NULL || KiAttachProcess == NULL)
+	{
+		return FALSE;
+	}
+
+	if (SwapContext_PatchXRstor == NULL || SwapContext == NULL)
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
 NTSTATUS LoadHV() 
 {
 	// 检测是否支持VT

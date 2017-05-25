@@ -10,6 +10,22 @@ PVOID HookTable[MAX_SYSCALL_INDEX] = { 0 };
 
 ULONG64 KiServiceCopyEndPtr = 0;    // KiSystemServiceCopyEnd address
 ULONG64 KiSystemCall64Ptr = 0;    // Original LSTAR value
+
+
+
+ULONG64 GuestSyscallHandler;
+ULONG64 NtSyscallHandler32;
+ULONG64 NtKernelsyscallBase;
+ULONG64 NtSyscallHandler;
+
+ULONG64 KiUmsCallEntry;
+ULONG64 KiSaveDebugRegisterState;
+ULONG64 KeServiceDescriptorTable;
+ULONG64 KeServiceDescriptorTableShadow;
+ULONG64 KiSystemServiceExit;
+ULONG64 KeGdiFlushUserBatch;
+ULONG64 KiSystemServiceRepeat;
+ULONG64 KiSystemServiceCopyEnd;
 //»ã±à
 VOID SyscallEntryPoint();
 
@@ -100,4 +116,19 @@ NTSTATUS SHHookSyscall(IN ULONG index, IN PVOID hookPtr, IN CHAR argCount)
 		KeLowerIrql(irql);
 
 	return status;
+}
+
+VOID InitData() {
+
+
+	NtKernelsyscallBase = (ULONG64)__readmsr(MSR_LSTAR);//kisystemcall64 entry point
+
+	NtSyscallHandler = (ULONG64)__readmsr(MSR_LSTAR);
+
+	NtSyscallHandler32 = (ULONG64)__readmsr(MSR_CSTAR);
+
+	GuestSyscallHandler = (ULONG64)&SyscallEntryPoint;
+
+	//	proxyNtQueryWindow = ssdt_GetSSDTShaDowFuncX64(16);
+
 }

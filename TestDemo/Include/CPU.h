@@ -28,8 +28,11 @@
 #define MSR_IA32_SYSENTER_EIP               0x176
 #define MSR_IA32_DEBUGCTL                   0x1D9
 
-#define MSR_LSTAR                           0xC0000082
-
+#define MSR_EFER							0xc0000080           /* extended feature register */
+#define MSR_STAR							0xc0000081           /* legacy mode SYSCALL target */
+#define MSR_LSTAR							0xc0000082          /* long mode SYSCALL target */
+#define MSR_CSTAR							0xc0000083          /* compatibility mode SYSCALL target */
+#define MSR_SYSCALL_MASK					0xc0000084   /* EFLAGS mask for syscall */
 #define MSR_FS_BASE                         0xC0000100
 #define MSR_GS_BASE                         0xC0000101
 #define MSR_SHADOW_GS_BASE                  0xC0000102        // SwapGS GS shadow

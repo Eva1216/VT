@@ -8,6 +8,14 @@
 #include "..\R3R0\GlobalData.h"
 
 
+int mystrcmp(const char * src, const char * dst);
+
+VOID DbgNoVtHookMyDbgKr(BOOLEAN IsH);
+
+NTSTATUS DispatchIoctl(PDEVICE_OBJECT pDevObj, PIRP pIrp);
+
+BOOLEAN CheckIOCTLData();
+
 NTSTATUS LoadHV();
 
 VOID BypassCheckSign(PDRIVER_OBJECT DriverObject);

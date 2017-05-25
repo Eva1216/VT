@@ -47,6 +47,36 @@
     <Filter Include="R3 R0">
       <UniqueIdentifier>{bb1fefbe-5a61-4b85-85e8-d95b2ffca3c2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PassPG">
+      <UniqueIdentifier>{345c3e0a-0659-4d3f-887c-a55c81325e8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ResetDbg">
+      <UniqueIdentifier>{54c8c6d9-7216-45bd-8456-ac15c7bac593}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="KernelStruct">
+      <UniqueIdentifier>{e57fe4c4-8b4e-40cd-8712-2e2cbdac4714}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MiNiHook">
+      <UniqueIdentifier>{4b8e19f3-3d5b-4155-aa52-787a31879075}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AntiAntiDbgAll">
+      <UniqueIdentifier>{27c68825-13db-4ba5-96cd-60e757839507}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AntiHook">
+      <UniqueIdentifier>{3862796b-88e0-4bb7-ae12-c41f98257550}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ProcessDbgList">
+      <UniqueIdentifier>{485198a0-34f8-46a1-8888-664f8a9fdeea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ProtectWindow">
+      <UniqueIdentifier>{a70f9389-ae5a-48b8-91f8-fa4ef0e6b051}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DRRWE">
+      <UniqueIdentifier>{f21bbf5e-1f4c-4e9b-9d8a-ea360f395cd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hook\HookFunction">
+      <UniqueIdentifier>{f0a2ec3c-aef5-4b53-8d84-a234d3473cdc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="TestDemo.inf">
@@ -92,6 +122,42 @@
     </ClCompile>
     <ClCompile Include="Hook\SysCallHook.c">
       <Filter>Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="DbgTool\DbgProcessInformation.c">
+      <Filter>DbgTool</Filter>
+    </ClCompile>
+    <ClCompile Include="PassPG\DisablePG.c">
+      <Filter>PassPG</Filter>
+    </ClCompile>
+    <ClCompile Include="ResetDbg\ResetDbg.c">
+      <Filter>ResetDbg</Filter>
+    </ClCompile>
+    <ClCompile Include="MiNiHook\MiNiHook.c">
+      <Filter>MiNiHook</Filter>
+    </ClCompile>
+    <ClCompile Include="AntiAntiDbg\AntiAntiDbg.c">
+      <Filter>AntiAntiDbgAll</Filter>
+    </ClCompile>
+    <ClCompile Include="AntiHook\AntiHookSwapContext.c">
+      <Filter>AntiHook</Filter>
+    </ClCompile>
+    <ClCompile Include="Hook\SSDTHook.c">
+      <Filter>Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="ProcessDbgList\ActiveProcessDbgList.c">
+      <Filter>ProcessDbgList</Filter>
+    </ClCompile>
+    <ClCompile Include="ProtectWindow\ProtectWindow.c">
+      <Filter>ProtectWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="ResetDbg\Dbg.c">
+      <Filter>ResetDbg</Filter>
+    </ClCompile>
+    <ClCompile Include="DRRWE\DRRWE.c">
+      <Filter>DRRWE</Filter>
+    </ClCompile>
+    <ClCompile Include="Hook\HookFunction\HookFunction.c">
+      <Filter>Hook\HookFunction</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -152,6 +218,51 @@
     <ClInclude Include="Hook\SysCallHook.h">
       <Filter>Hook</Filter>
     </ClInclude>
+    <ClInclude Include="DbgTool\DbgProcessInformation.h">
+      <Filter>DbgTool</Filter>
+    </ClInclude>
+    <ClInclude Include="PassPG\DisablePG.h">
+      <Filter>PassPG</Filter>
+    </ClInclude>
+    <ClInclude Include="ResetDbg\ResetDbg.h">
+      <Filter>ResetDbg</Filter>
+    </ClInclude>
+    <ClInclude Include="MiNiHook\MiNiHook.h">
+      <Filter>MiNiHook</Filter>
+    </ClInclude>
+    <ClInclude Include="AntiAntiDbg\AntiAntiDbg.h">
+      <Filter>AntiAntiDbgAll</Filter>
+    </ClInclude>
+    <ClInclude Include="AntiHook\AntiHookSwapContext.h">
+      <Filter>AntiHook</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\SSDTHook.h">
+      <Filter>Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\AMD64.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcessDbgList\ActiveProcessDbgList.h">
+      <Filter>ProcessDbgList</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Txoo.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="ProtectWindow\ProtectWindow.h">
+      <Filter>ProtectWindow</Filter>
+    </ClInclude>
+    <ClInclude Include="ResetDbg\Dbg.h">
+      <Filter>ResetDbg</Filter>
+    </ClInclude>
+    <ClInclude Include="KernelStruct\KernelStruct.h">
+      <Filter>KernelStruct</Filter>
+    </ClInclude>
+    <ClInclude Include="DRRWE\DRRWE.h">
+      <Filter>DRRWE</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\HookFunction\HookFunction.h">
+      <Filter>Hook\HookFunction</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="Intel\VMXa.asm">
@@ -159,6 +270,9 @@
     </MASM>
     <MASM Include="Hook\SysCallHooka.asm">
       <Filter>Hook</Filter>
+    </MASM>
+    <MASM Include="PassPG\DisablePGASM.asm">
+      <Filter>PassPG</Filter>
     </MASM>
   </ItemGroup>
 </Project>

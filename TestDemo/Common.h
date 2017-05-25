@@ -151,3 +151,5 @@ typedef struct _GLOBAL_DATA
 
 extern PGLOBAL_DATA g_Data;
 #pragma warning(default: 4214)
+
+
