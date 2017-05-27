@@ -12,6 +12,7 @@
 #include "..\Hook\SSDTHook.h"
 #include "..\MiNiHook\MiNiHook.h"
 #include "..\ProtectWindow\ProtectWindow.h"
+#include "..\HVM\HVM.h"
 UCHAR int3 = { 0xCC };
 BOOLEAN			DriverEnable = FALSE;
 BOOLEAN			MainVtMode = FALSE;
@@ -1014,9 +1015,9 @@ NTSTATUS UnloadHV() {
 	TestPrintResults();
 	//TestStop();
 
-	//NTSTATUS status = StopHV();
+	NTSTATUS status = StopHV();
 	MainVtMode = FALSE;
-	//FreeGlobalData(g_Data);
+	FreeGlobalData(g_Data);
 }
 
 /// <summary>

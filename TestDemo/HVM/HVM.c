@@ -1,6 +1,7 @@
 #include "HVM.h"
 #include "..\Utils\Utils.h"
 #include "..\Intel\VMX.h"
+
 BOOLEAN HvmIsHVSupported()
 {
 	CPU_VENDOR vendor = UtilCPUVendor();	//获取的到CPU信息
